@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ScanSampah AI</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F4F7F3;--surface:#FFFFFF;--surface2:#EAF0E8;--ink:#14231C;--muted:#5E6F66;--line:#D8E2D6;--accent:#2B7A4B;--accent-ink:#FFFFFF;--warn:#B9770E;--bad:#B3392F;--shadow:0 1px 2px rgba(20,35,28,.06),0 8px 24px rgba(20,35,28,.06)}
+:root[data-theme="dark"]{--bg:#0E1512;--surface:#16211C;--surface2:#1D2B25;--ink:#E7F0EA;--muted:#93A79B;--line:#26362F;--accent:#5BD38A;--accent-ink:#0E1512;--warn:#E3A93B;--bad:#EF7B6F;--shadow:none}
+*{box-sizing:border-box;margin:0}
+html,body{background:var(--bg);color:var(--ink);font-family:"Plus Jakarta Sans",system-ui,sans-serif;line-height:1.55}
+body{min-height:100vh}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:560px;margin:0 auto;padding:16px 16px 48px}
+header{display:flex;align-items:center;justify-content:space-between;padding:8px 0 16px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px}
+.brand i{color:var(--accent)}
+.icon-btn{width:40px;height:40px;border-radius:50%;background:var(--surface);border:1px solid var(--line);display:inline-grid;place-items:center}
+.icon-btn:hover{background:var(--surface2)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow);margin-bottom:14px}
+.stats{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center}
+.lvl{width:64px;height:64px;border-radius:18px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;text-align:center;line-height:1.1}
+.lvl b{font-size:24px;display:block}.lvl small{font-size:11px;font-weight:600}
+.stats h2{font-size:17px}.stats p{color:var(--muted);font-size:13px}
+.bar{height:8px;border-radius:99px;background:var(--surface2);margin:8px 0 4px;overflow:hidden}
+.bar span{display:block;height:100%;background:var(--accent);border-radius:99px;transition:width .5s}
+.mini{display:flex;gap:18px;margin-top:12px;color:var(--muted);font-size:13px}
+.mini b{color:var(--ink)}
+.scan{display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
+.drop{width:100%;aspect-ratio:4/3;border:2px dashed var(--line);border-radius:14px;display:grid;place-items:center;overflow:hidden;background:var(--surface2);color:var(--muted)}
+.drop img{width:100%;height:100%;object-fit:cover}
+.drop div{padding:16px}.drop i{font-size:34px;color:var(--accent);margin-bottom:8px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:14px 22px;border-radius:12px;font-weight:700;background:var(--accent);color:var(--accent-ink);width:100%}
+.btn.ghost{background:var(--surface2);color:var(--ink)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.row{display:flex;gap:10px;width:100%}
+.res-head{display:flex;gap:14px;align-items:center;margin-bottom:12px}
+.res-ico{width:48px;height:48px;border-radius:14px;background:var(--surface2);color:var(--accent);display:grid;place-items:center;font-size:20px;flex:none}
+.res-head h3{font-size:18px}
+.tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--surface2)}
+.tag.ok{color:var(--accent)}.tag.no{color:var(--warn)}
+.sec{margin-top:12px}.sec h4{font-size:13px;color:var(--muted);font-weight:600;margin-bottom:2px}
+.gain{display:flex;align-items:center;gap:8px;margin-top:14px;padding:10px 12px;border-radius:10px;background:var(--surface2);font-weight:700;color:var(--accent)}
+.err{display:flex;gap:10px;color:var(--bad);font-size:14px}
+h2.t{font-size:16px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.ach{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.a{display:flex;gap:10px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:12px;opacity:.5}
+.a.on{opacity:1;border-color:var(--accent)}
+.a i{width:34px;height:34px;border-radius:10px;background:var(--surface2);display:grid;place-items:center;color:var(--muted);flex:none}
+.a.on i{background:var(--accent);color:var(--accent-ink)}
+.a b{font-size:13px;display:block;line-height:1.2}.a small{font-size:11px;color:var(--muted);line-height:1.2;display:block}
+.hist{list-style:none;padding:0}
+.hist li{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.hist li:last-child{border:0}.hist small{color:var(--muted)}
+.empty{color:var(--muted);font-size:14px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translate(-50%,40px);opacity:0;background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:12px;font-size:14px;font-weight:600;transition:.3s;z-index:9;max-width:90vw;display:flex;gap:10px;align-items:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+dialog{border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--ink);padding:20px;width:min(92vw,420px)}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+dialog input{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;margin:10px 0}
+dialog p{font-size:13px;color:var(--muted)}
+.spin{animation:sp 1s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><i class="fa-solid fa-recycle"></i> ScanSampah AI</div>
+    <div style="display:flex;gap:8px">
+      <button class="icon-btn" id="btnKey" aria-label="Pengaturan API key"><i class="fa-solid fa-key"></i></button>
+      <button class="icon-btn" id="btnTheme" aria-label="Ganti tema"><i class="fa-solid fa-moon"></i></button>
+    </div>
+  </header>
+
+  <section class="card">
+    <div class="stats">
+      <div class="lvl"><div><small>Level</small><b id="lvlNum">1</b></div></div>
+      <div>
+        <h2 id="lvlName">Pemula</h2>
+        <div class="bar"><span id="lvlBar" style="width:0"></span></div>
+        <p id="lvlText">0 poin</p>
+      </div>
+    </div>
+    <div class="mini">
+      <span><i class="fa-solid fa-star"></i> <b id="sPts">0</b> poin</span>
+      <span><i class="fa-solid fa-camera"></i> <b id="sScan">0</b> scan</span>
+      <span><i class="fa-solid fa-fire"></i> <b id="sStreak">0</b> hari beruntun</span>
+    </div>
+  </section>
+
+  <section class="card scan">
+    <div class="drop" id="drop"><div><i class="fa-solid fa-image"></i><p>Foto sampah akan tampil di sini</p></div></div>
+    <input type="file" id="file" accept="image/*" capture="environment" hidden>
+    <input type="file" id="gallery" accept="image/*" hidden>
+    <div class="row">
+      <button class="btn ghost" id="btnCam"><i class="fa-solid fa-camera"></i> Kamera</button>
+      <button class="btn ghost" id="btnGal"><i class="fa-solid fa-images"></i> Galeri</button>
+    </div>
+    <button class="btn" id="btnScan" disabled><i class="fa-solid fa-magnifying-glass"></i> Scan sampah</button>
+  </section>
+
+  <section id="result"></section>
+
+  <section class="card">
+    <h2 class="t"><i class="fa-solid fa-trophy"></i> Pencapaian <span id="achCount" class="tag"></span></h2>
+    <div class="ach" id="ach"></div>
+  </section>
+
+  <section class="card">
+    <h2 class="t"><i class="fa-solid fa-clock-rotate-left"></i> Riwayat scan</h2>
+    <ul class="hist" id="hist"></ul>
+  </section>
+</div>
+
+<dialog id="dlg">
+  <h2 class="t"><i class="fa-solid fa-key"></i> API key Gemini</h2>
+  <p>Kunci disimpan hanya di browser ini. Buat kunci gratis di Google AI Studio.</p>
+  <input type="password" id="keyInput" placeholder="Tempel API key" autocomplete="off">
+  <div class="row"><button class="btn ghost" id="keyCancel">Batal</button><button class="btn" id="keySave">Simpan</button></div>
+</dialog>
+<div class="toast" id="toast"></div>
+
+<script>
+const MODEL = "gemini-3.5-flash"; // gemini-2.0-flash sudah dimatikan Google (1 Juni 2026)
+const API_KEY_PLACEHOLDER = "ISI_API_KEY_GEMINI_DI_SINI"; // atau isi lewat ikon kunci di aplikasi
+const STORE = "scansampah_v1", THEME = "scansampah_theme", KEY = "scansampah_key";
+
+const LEVELS = ["Pemula","Pemilah","Penjaga Bumi","Pejuang Daur Ulang","Duta Lingkungan","Master Lingkungan"];
+const need = l => 5 * l * (l - 1); // poin minimum untuk level l
+const CAT = {
+  Organik:{icon:"fa-leaf"}, Anorganik:{icon:"fa-bottle-water"},
+  B3:{icon:"fa-triangle-exclamation"}, Residu:{icon:"fa-trash"}
+};
+const ACH = [
+  {id:"s1",n:"Langkah pertama",d:"Scan 1 sampah",i:"fa-seedling",t:s=>s.scans>=1},
+  {id:"s10",n:"Mulai rajin",d:"Scan 10 sampah",i:"fa-hand-holding-heart",t:s=>s.scans>=10},
+  {id:"s50",n:"Pemilah handal",d:"Scan 50 sampah",i:"fa-medal",t:s=>s.scans>=50},
+  {id:"s100",n:"Seratus scan",d:"Scan 100 sampah",i:"fa-crown",t:s=>s.scans>=100},
+  {id:"r5",n:"Pecinta daur ulang",d:"5 sampah daur ulang",i:"fa-recycle",t:s=>s.recyclable>=5},
+  {id:"r25",n:"Pahlawan daur ulang",d:"25 sampah daur ulang",i:"fa-earth-asia",t:s=>s.recyclable>=25},
+  {id:"cat",n:"Kenal semua jenis",d:"Temukan 4 kategori",i:"fa-layer-group",t:s=>Object.keys(s.types).length>=4},
+  {id:"b3",n:"Waspada B3",d:"Scan sampah B3",i:"fa-flask-vial",t:s=>(s.types.B3||0)>=1},
+  {id:"st3",n:"Konsisten",d:"3 hari beruntun",i:"fa-fire",t:s=>s.streak>=3},
+  {id:"lv5",n:"Naik kelas",d:"Capai level 5",i:"fa-arrow-up-right-dots",t:s=>levelOf(s.points)>=5}
+];
+
+let S = load();
+let imgData = null, busy = false;
+const $ = id => document.getElementById(id);
+const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function load(){
+  try { const s = JSON.parse(localStorage.getItem(STORE)); if (s) return s; } catch(e){}
+  return {points:0,scans:0,recyclable:0,types:{},achievements:[],history:[],lastDate:null,streak:0};
+}
+function save(){ try { localStorage.setItem(STORE, JSON.stringify(S)); } catch(e){} }
+function levelOf(p){ let l=1; while (p >= need(l+1)) l++; return l; }
+function today(){ return new Date().toISOString().slice(0,10); }
+function toast(msg, icon="fa-circle-check"){
+  const t = $("toast"); t.innerHTML = `<i class="fa-solid ${icon}"></i><span>${esc(msg)}</span>`;
+  t.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(()=>t.classList.remove("show"), 3200);
+}
+
+/* Tema */
+function setTheme(t){
+  document.documentElement.dataset.theme = t;
+  $("btnTheme").innerHTML = `<i class="fa-solid ${t==="dark"?"fa-sun":"fa-moon"}"></i>`;
+  try { localStorage.setItem(THEME, t); } catch(e){}
+}
+let savedTheme = null; try { savedTheme = localStorage.getItem(THEME); } catch(e){}
+setTheme(savedTheme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
+$("btnTheme").onclick = () => setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+
+/* API key */
+function getKey(){ let k=""; try { k = localStorage.getItem(KEY) || ""; } catch(e){} return k || (API_KEY_PLACEHOLDER.startsWith("ISI_") ? "" : API_KEY_PLACEHOLDER); }
+$("btnKey").onclick = () => { $("keyInput").value = getKey(); $("dlg").showModal(); };
+$("keyCancel").onclick = () => $("dlg").close();
+$("keySave").onclick = () => { try { localStorage.setItem(KEY, $("keyInput").value.trim()); } catch(e){} $("dlg").close(); toast("API key disimpan"); };
+
+/* Render */
+function render(){
+  const lv = levelOf(S.points), lo = need(lv), hi = need(lv+1);
+  $("lvlNum").textContent = lv;
+  $("lvlName").textContent = LEVELS[Math.min(lv-1, LEVELS.length-1)];
+  $("lvlBar").style.width = Math.min(100, (S.points-lo)/(hi-lo)*100) + "%";
+  $("lvlText").textContent = `${S.points} poin, ${hi-S.points} poin lagi ke level ${lv+1}`;
+  $("sPts").textContent = S.points; $("sScan").textContent = S.scans; $("sStreak").textContent = S.streak;
+  $("achCount").textContent = `${S.achievements.length}/${ACH.length}`;
+  $("ach").innerHTML = ACH.map(a => `<div class="a ${S.achievements.includes(a.id)?"on":""}"><i class="fa-solid ${a.i}"></i><div><b>${a.n}</b><small>${a.d}</small></div></div>`).join("");
+  $("hist").innerHTML = S.history.length
+    ? S.history.map(h => `<li><span><b>${esc(h.nama)}</b><br><small>${esc(h.kategori)}${h.daur?", bisa didaur ulang":""}</small></span><small>${esc(h.tgl)}</small></li>`).join("")
+    : `<li class="empty">Belum ada scan. Ambil foto sampah pertamamu.</li>`;
+}
+
+/* Gambar */
+function pick(file){
+  if (!file) return;
+  const r = new FileReader();
+  r.onload = () => {
+    const im = new Image();
+    im.onload = () => {
+      const m = 1024, k = Math.min(1, m/Math.max(im.width, im.height));
+      const c = document.createElement("canvas"); c.width = im.width*k; c.height = im.height*k;
+      c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+      const url = c.toDataURL("image/jpeg", .85);
+      imgData = url.split(",")[1];
+      $("drop").innerHTML = `<img src="${url}" alt="Foto sampah">`;
+      $("btnScan").disabled = false; $("result").innerHTML = "";
+    };
+    im.src = r.result;
+  };
+  r.readAsDataURL(file);
+}
+$("btnCam").onclick = () => $("file").click();
+$("btnGal").onclick = () => $("gallery").click();
+$("file").onchange = e => { pick(e.target.files[0]); e.target.value = ""; };
+$("gallery").onchange = e => { pick(e.target.files[0]); e.target.value = ""; };
+
+/* Scan */
+const PROMPT = `Kamu adalah pakar pengelolaan sampah di Indonesia. Analisis foto ini.
+Balas HANYA JSON dengan bentuk:
+{"valid":boolean,"alasan":"isi jika valid=false: foto buram, gelap, atau bukan sampah","nama":"nama benda","kategori":"Organik|Anorganik|B3|Residu","daur_ulang":boolean,"cara_buang":"langkah singkat membuang yang benar, sebutkan warna tempat sampah bila relevan","tips_daur_ulang":"ide daur ulang atau penggunaan ulang, singkat"}
+Gunakan bahasa Indonesia. Jika tidak ada sampah yang jelas, valid=false.`;
+
+function showError(msg){ $("result").innerHTML = `<div class="card err"><i class="fa-solid fa-circle-exclamation"></i><div>${esc(msg)}</div></div>`; }
+
+$("btnScan").onclick = async () => {
+  if (busy || !imgData) return;
+  const key = getKey();
+  if (!key) { showError("API key belum diisi. Ketuk ikon kunci di kanan atas."); return; }
+  busy = true; $("btnScan").disabled = true;
+  $("btnScan").innerHTML = `<i class="fa-solid fa-spinner spin"></i> Menganalisis...`;
+  $("result").innerHTML = "";
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(key)}`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        contents:[{parts:[{text:PROMPT},{inline_data:{mime_type:"image/jpeg",data:imgData}}]}],
+        generationConfig:{responseMimeType:"application/json"}
+      })
+    });
+    if (!res.ok) throw new Error(res.status === 400 || res.status === 403 ? "API key tidak valid atau tidak punya akses." : res.status === 429 ? "Batas penggunaan tercapai. Coba lagi sebentar." : "Server AI bermasalah (" + res.status + ").");
+    const data = await res.json();
+    const raw = data.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("") || "";
+    const r = JSON.parse(raw.replace(/```json|```/g,"").trim());
+    if (!r.valid) { showError((r.alasan || "Sampah tidak terdeteksi.") + " Ambil ulang foto dengan cahaya cukup dan objek di tengah."); return; }
+    award(r); showResult(r);
+  } catch (e) {
+    showError(e instanceof SyntaxError ? "Jawaban AI tidak terbaca. Coba scan ulang." : (e.message || "Gagal terhubung. Periksa koneksi internet."));
+  } finally {
+    busy = false; $("btnScan").disabled = false;
+    $("btnScan").innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> Scan sampah`;
+  }
+};
+
+function showResult(r){
+  const c = CAT[r.kategori] || CAT.Residu;
+  $("result").innerHTML = `<div class="card">
+    <div class="res-head"><div class="res-ico"><i class="fa-solid ${c.icon}"></i></div>
+      <div><h3>${esc(r.nama)}</h3>
+      <span class="tag">${esc(r.kategori)}</span>
+      <span class="tag ${r.daur_ulang?"ok":"no"}"><i class="fa-solid ${r.daur_ulang?"fa-circle-check":"fa-circle-xmark"}"></i> ${r.daur_ulang?"Bisa didaur ulang":"Tidak bisa didaur ulang"}</span></div></div>
+    <div class="sec"><h4>Cara membuang</h4><p>${esc(r.cara_buang)}</p></div>
+    <div class="sec"><h4>Ide daur ulang</h4><p>${esc(r.tips_daur_ulang)}</p></div>
+    <div class="gain"><i class="fa-solid fa-circle-plus"></i> +1 poin</div></div>`;
+}
+
+function award(r){
+  const prevLv = levelOf(S.points);
+  S.points++; S.scans++;
+  if (r.daur_ulang) S.recyclable++;
+  S.types[r.kategori] = (S.types[r.kategori]||0) + 1;
+  const t = today(), y = new Date(Date.now()-864e5).toISOString().slice(0,10);
+  if (S.lastDate !== t) { S.streak = S.lastDate === y ? S.streak+1 : 1; S.lastDate = t; }
+  S.history.unshift({nama:r.nama,kategori:r.kategori,daur:!!r.daur_ulang,tgl:new Date().toLocaleDateString("id-ID",{day:"numeric",month:"short"})});
+  S.history = S.history.slice(0,30);
+  const fresh = ACH.filter(a => !S.achievements.includes(a.id) && a.t(S));
+  fresh.forEach(a => S.achievements.push(a.id));
+  save(); render();
+  if (levelOf(S.points) > prevLv) toast("Naik ke level " + levelOf(S.points), "fa-arrow-up");
+  else if (fresh.length) toast("Pencapaian baru: " + fresh[0].n, "fa-trophy");
+}
+
+render();
+</script>
+</body>
+</html>
