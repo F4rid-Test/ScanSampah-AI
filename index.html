@@ -64,6 +64,10 @@ dialog::backdrop{background:rgba(0,0,0,.5)}
 dialog input{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;margin:10px 0}
 dialog p{font-size:13px;color:var(--muted)}
 .spin{animation:sp 1s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+.info{display:grid;gap:12px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.info>div{display:flex;gap:12px}
+.info i{width:32px;height:32px;border-radius:10px;background:var(--surface2);color:var(--accent);display:grid;place-items:center;flex:none;font-size:14px}
+.info h4{font-size:13px;color:var(--muted);font-weight:600}.info p{font-size:14px}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -72,7 +76,6 @@ dialog p{font-size:13px;color:var(--muted)}
   <header>
     <div class="brand"><i class="fa-solid fa-recycle"></i> ScanSampah AI</div>
     <div style="display:flex;gap:8px">
-      <button class="icon-btn" id="btnKey" aria-label="Pengaturan API key"><i class="fa-solid fa-key"></i></button>
       <button class="icon-btn" id="btnTheme" aria-label="Ganti tema"><i class="fa-solid fa-moon"></i></button>
     </div>
   </header>
@@ -117,21 +120,23 @@ dialog p{font-size:13px;color:var(--muted)}
   </section>
 </div>
 
-<dialog id="dlg">
-  <h2 class="t"><i class="fa-solid fa-key"></i> API key Gemini</h2>
-  <p>Kunci disimpan hanya di browser ini. Buat kunci gratis di Google AI Studio.</p>
-  <input type="password" id="keyInput" placeholder="Tempel API key" autocomplete="off">
-  <div class="row"><button class="btn ghost" id="keyCancel">Batal</button><button class="btn" id="keySave">Simpan</button></div>
-</dialog>
 <div class="toast" id="toast"></div>
 
 <script>
-const MODEL = "gemini-3.5-flash"; // gemini-2.0-flash sudah dimatikan Google (1 Juni 2026)
-const API_KEY_PLACEHOLDER = "ISI_API_KEY_GEMINI_DI_SINI"; // atau isi lewat ikon kunci di aplikasi
-const STORE = "scansampah_v1", THEME = "scansampah_theme", KEY = "scansampah_key";
+const API_KEY = "ISI_API_KEY_GEMINI_DI_SINI"; // tempel API key Gemini di sini
+const MODEL = "gemini-3.5-flash";
+const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`;
+const CATEGORIES = ["Organik","Anorganik","B3","Residu"];
+const str = (v, max = 400) => String(v ?? "").slice(0, max);
+const randomPoin = () => 1 + crypto.getRandomValues(new Uint32Array(1))[0] % 10; // acak 1 sampai 10
+const PROMPT = `Kamu adalah pakar pengelolaan sampah di Indonesia. Analisis foto ini.
+Balas HANYA JSON dengan bentuk:
+{"valid":boolean,"alasan":"isi jika valid=false: foto buram, gelap, atau bukan sampah","nama":"nama benda","kategori":"Organik|Anorganik|B3|Residu","daur_ulang":boolean,"cara_buang":"langkah singkat membuang yang benar, sebutkan warna tempat sampah bila relevan","tips_daur_ulang":"ide daur ulang atau penggunaan ulang, singkat","waktu_terurai":"perkiraan waktu terurai di alam","dampak_lingkungan":"dampak jika dibuang sembarangan, 1-2 kalimat","fakta_menarik":"satu fakta menarik tentang benda ini"}
+Gunakan bahasa Indonesia. Jika tidak ada sampah yang jelas, valid=false.`;
+const STORE = "scansampah_v1", THEME = "scansampah_theme";
 
 const LEVELS = ["Pemula","Pemilah","Penjaga Bumi","Pejuang Daur Ulang","Duta Lingkungan","Master Lingkungan"];
-const need = l => 5 * l * (l - 1); // poin minimum untuk level l
+const need = l => 25 * l * (l - 1); // poin minimum untuk level l
 const CAT = {
   Organik:{icon:"fa-leaf"}, Anorganik:{icon:"fa-bottle-water"},
   B3:{icon:"fa-triangle-exclamation"}, Residu:{icon:"fa-trash"}
@@ -141,11 +146,19 @@ const ACH = [
   {id:"s10",n:"Mulai rajin",d:"Scan 10 sampah",i:"fa-hand-holding-heart",t:s=>s.scans>=10},
   {id:"s50",n:"Pemilah handal",d:"Scan 50 sampah",i:"fa-medal",t:s=>s.scans>=50},
   {id:"s100",n:"Seratus scan",d:"Scan 100 sampah",i:"fa-crown",t:s=>s.scans>=100},
+  {id:"p100",n:"Kolektor poin",d:"Kumpulkan 100 poin",i:"fa-coins",t:s=>s.points>=100},
+  {id:"p500",n:"Juragan poin",d:"Kumpulkan 500 poin",i:"fa-sack-dollar",t:s=>s.points>=500},
+  {id:"p1000",n:"Sultan hijau",d:"Kumpulkan 1000 poin",i:"fa-gem",t:s=>s.points>=1000},
+  {id:"j1",n:"Jackpot",d:"Dapat 10 poin dalam sekali scan",i:"fa-dice",t:s=>s.tens>=1},
+  {id:"j5",n:"Hoki berkali-kali",d:"Jackpot 10 poin sebanyak 5 kali",i:"fa-clover",t:s=>s.tens>=5},
   {id:"r5",n:"Pecinta daur ulang",d:"5 sampah daur ulang",i:"fa-recycle",t:s=>s.recyclable>=5},
   {id:"r25",n:"Pahlawan daur ulang",d:"25 sampah daur ulang",i:"fa-earth-asia",t:s=>s.recyclable>=25},
+  {id:"org10",n:"Pecinta kompos",d:"Scan 10 sampah organik",i:"fa-apple-whole",t:s=>(s.types.Organik||0)>=10},
   {id:"cat",n:"Kenal semua jenis",d:"Temukan 4 kategori",i:"fa-layer-group",t:s=>Object.keys(s.types).length>=4},
   {id:"b3",n:"Waspada B3",d:"Scan sampah B3",i:"fa-flask-vial",t:s=>(s.types.B3||0)>=1},
   {id:"st3",n:"Konsisten",d:"3 hari beruntun",i:"fa-fire",t:s=>s.streak>=3},
+  {id:"st7",n:"Seminggu penuh",d:"7 hari beruntun",i:"fa-calendar-check",t:s=>s.streak>=7},
+  {id:"d5",n:"Maraton sampah",d:"5 scan dalam sehari",i:"fa-bolt",t:s=>s.dayCount>=5},
   {id:"lv5",n:"Naik kelas",d:"Capai level 5",i:"fa-arrow-up-right-dots",t:s=>levelOf(s.points)>=5}
 ];
 
@@ -154,8 +167,9 @@ let imgData = null, busy = false;
 const $ = id => document.getElementById(id);
 const esc = t => String(t ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function load(){
-  try { const s = JSON.parse(localStorage.getItem(STORE)); if (s) return s; } catch(e){}
-  return {points:0,scans:0,recyclable:0,types:{},achievements:[],history:[],lastDate:null,streak:0};
+  const d = {points:0,scans:0,recyclable:0,types:{},achievements:[],history:[],lastDate:null,streak:0,tens:0,dayCount:0};
+  try { const s = JSON.parse(localStorage.getItem(STORE)); if (s) return Object.assign(d, s); } catch(e){}
+  return d;
 }
 function save(){ try { localStorage.setItem(STORE, JSON.stringify(S)); } catch(e){} }
 function levelOf(p){ let l=1; while (p >= need(l+1)) l++; return l; }
@@ -175,12 +189,6 @@ let savedTheme = null; try { savedTheme = localStorage.getItem(THEME); } catch(e
 setTheme(savedTheme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
 $("btnTheme").onclick = () => setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
 
-/* API key */
-function getKey(){ let k=""; try { k = localStorage.getItem(KEY) || ""; } catch(e){} return k || (API_KEY_PLACEHOLDER.startsWith("ISI_") ? "" : API_KEY_PLACEHOLDER); }
-$("btnKey").onclick = () => { $("keyInput").value = getKey(); $("dlg").showModal(); };
-$("keyCancel").onclick = () => $("dlg").close();
-$("keySave").onclick = () => { try { localStorage.setItem(KEY, $("keyInput").value.trim()); } catch(e){} $("dlg").close(); toast("API key disimpan"); };
-
 /* Render */
 function render(){
   const lv = levelOf(S.points), lo = need(lv), hi = need(lv+1);
@@ -192,7 +200,7 @@ function render(){
   $("achCount").textContent = `${S.achievements.length}/${ACH.length}`;
   $("ach").innerHTML = ACH.map(a => `<div class="a ${S.achievements.includes(a.id)?"on":""}"><i class="fa-solid ${a.i}"></i><div><b>${a.n}</b><small>${a.d}</small></div></div>`).join("");
   $("hist").innerHTML = S.history.length
-    ? S.history.map(h => `<li><span><b>${esc(h.nama)}</b><br><small>${esc(h.kategori)}${h.daur?", bisa didaur ulang":""}</small></span><small>${esc(h.tgl)}</small></li>`).join("")
+    ? S.history.map(h => `<li><span><b>${esc(h.nama)}</b><br><small>${esc(h.kategori)}${h.daur?", bisa didaur ulang":""}</small></span><small>+${h.poin||1} poin, ${esc(h.tgl)}</small></li>`).join("")
     : `<li class="empty">Belum ada scan. Ambil foto sampah pertamamu.</li>`;
 }
 
@@ -221,44 +229,51 @@ $("file").onchange = e => { pick(e.target.files[0]); e.target.value = ""; };
 $("gallery").onchange = e => { pick(e.target.files[0]); e.target.value = ""; };
 
 /* Scan */
-const PROMPT = `Kamu adalah pakar pengelolaan sampah di Indonesia. Analisis foto ini.
-Balas HANYA JSON dengan bentuk:
-{"valid":boolean,"alasan":"isi jika valid=false: foto buram, gelap, atau bukan sampah","nama":"nama benda","kategori":"Organik|Anorganik|B3|Residu","daur_ulang":boolean,"cara_buang":"langkah singkat membuang yang benar, sebutkan warna tempat sampah bila relevan","tips_daur_ulang":"ide daur ulang atau penggunaan ulang, singkat"}
-Gunakan bahasa Indonesia. Jika tidak ada sampah yang jelas, valid=false.`;
-
 function showError(msg){ $("result").innerHTML = `<div class="card err"><i class="fa-solid fa-circle-exclamation"></i><div>${esc(msg)}</div></div>`; }
 
 $("btnScan").onclick = async () => {
   if (busy || !imgData) return;
-  const key = getKey();
-  if (!key) { showError("API key belum diisi. Ketuk ikon kunci di kanan atas."); return; }
   busy = true; $("btnScan").disabled = true;
   $("btnScan").innerHTML = `<i class="fa-solid fa-spinner spin"></i> Menganalisis...`;
   $("result").innerHTML = "";
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(key)}`, {
+    if (!API_KEY || API_KEY.startsWith("ISI_")) throw new Error("API key belum diisi. Isi konstanta API_KEY di bagian script.");
+    const res = await fetch(`${API_URL}?key=${encodeURIComponent(API_KEY)}`, {
       method:"POST", headers:{"Content-Type":"application/json"},
       body: JSON.stringify({
         contents:[{parts:[{text:PROMPT},{inline_data:{mime_type:"image/jpeg",data:imgData}}]}],
         generationConfig:{responseMimeType:"application/json"}
       })
     });
-    if (!res.ok) throw new Error(res.status === 400 || res.status === 403 ? "API key tidak valid atau tidak punya akses." : res.status === 429 ? "Batas penggunaan tercapai. Coba lagi sebentar." : "Server AI bermasalah (" + res.status + ").");
+    if (!res.ok) throw new Error(res.status === 400 || res.status === 403 ? "API key tidak valid atau tidak punya akses." : res.status === 404 ? "Model AI tidak ditemukan. Periksa nilai MODEL." : res.status === 429 ? "Batas penggunaan tercapai. Coba lagi sebentar." : "Server AI bermasalah (" + res.status + ").");
     const data = await res.json();
-    const raw = data.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("") || "";
-    const r = JSON.parse(raw.replace(/```json|```/g,"").trim());
-    if (!r.valid) { showError((r.alasan || "Sampah tidak terdeteksi.") + " Ambil ulang foto dengan cahaya cukup dan objek di tengah."); return; }
+    const raw = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("");
+    const j = JSON.parse(raw.replace(/```json|```/g, "").trim());
+    if (!j.valid) { showError((str(j.alasan, 200) || "Sampah tidak terdeteksi.") + " Ambil ulang foto dengan cahaya cukup dan objek di tengah."); return; }
+    const r = {
+      nama: str(j.nama, 80), kategori: CATEGORIES.includes(j.kategori) ? j.kategori : "Residu",
+      daur_ulang: j.daur_ulang === true, cara_buang: str(j.cara_buang), tips_daur_ulang: str(j.tips_daur_ulang),
+      waktu_terurai: str(j.waktu_terurai, 120), dampak_lingkungan: str(j.dampak_lingkungan), fakta_menarik: str(j.fakta_menarik),
+      poin: randomPoin()
+    };
     award(r); showResult(r);
   } catch (e) {
-    showError(e instanceof SyntaxError ? "Jawaban AI tidak terbaca. Coba scan ulang." : (e.message || "Gagal terhubung. Periksa koneksi internet."));
+    showError(e instanceof TypeError ? "Tidak bisa terhubung. Periksa koneksi internet." : e instanceof SyntaxError ? "Jawaban AI tidak terbaca. Coba scan ulang." : (e.message || "Terjadi kesalahan."));
   } finally {
     busy = false; $("btnScan").disabled = false;
     $("btnScan").innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> Scan sampah`;
   }
 };
 
+function poinOf(r){ return Math.min(10, Math.max(1, Math.round(Number(r.poin)) || 1)); }
+
 function showResult(r){
-  const c = CAT[r.kategori] || CAT.Residu;
+  const c = CAT[r.kategori] || CAT.Residu, p = poinOf(r);
+  const extra = [
+    ["fa-hourglass-half","Waktu terurai",r.waktu_terurai],
+    ["fa-earth-asia","Dampak ke lingkungan",r.dampak_lingkungan],
+    ["fa-lightbulb","Fakta menarik",r.fakta_menarik]
+  ].filter(x => x[2]).map(x => `<div><i class="fa-solid ${x[0]}"></i><div><h4>${x[1]}</h4><p>${esc(x[2])}</p></div></div>`).join("");
   $("result").innerHTML = `<div class="card">
     <div class="res-head"><div class="res-ico"><i class="fa-solid ${c.icon}"></i></div>
       <div><h3>${esc(r.nama)}</h3>
@@ -266,17 +281,20 @@ function showResult(r){
       <span class="tag ${r.daur_ulang?"ok":"no"}"><i class="fa-solid ${r.daur_ulang?"fa-circle-check":"fa-circle-xmark"}"></i> ${r.daur_ulang?"Bisa didaur ulang":"Tidak bisa didaur ulang"}</span></div></div>
     <div class="sec"><h4>Cara membuang</h4><p>${esc(r.cara_buang)}</p></div>
     <div class="sec"><h4>Ide daur ulang</h4><p>${esc(r.tips_daur_ulang)}</p></div>
-    <div class="gain"><i class="fa-solid fa-circle-plus"></i> +1 poin</div></div>`;
+    ${extra ? `<div class="info">${extra}</div>` : ""}
+    <div class="gain"><i class="fa-solid ${p===10?"fa-dice":"fa-circle-plus"}"></i> +${p} poin${p===10?" (jackpot)":""}</div></div>`;
 }
 
 function award(r){
-  const prevLv = levelOf(S.points);
-  S.points++; S.scans++;
+  const prevLv = levelOf(S.points), p = poinOf(r);
+  S.points += p; S.scans++;
+  if (p === 10) S.tens++;
   if (r.daur_ulang) S.recyclable++;
   S.types[r.kategori] = (S.types[r.kategori]||0) + 1;
   const t = today(), y = new Date(Date.now()-864e5).toISOString().slice(0,10);
-  if (S.lastDate !== t) { S.streak = S.lastDate === y ? S.streak+1 : 1; S.lastDate = t; }
-  S.history.unshift({nama:r.nama,kategori:r.kategori,daur:!!r.daur_ulang,tgl:new Date().toLocaleDateString("id-ID",{day:"numeric",month:"short"})});
+  if (S.lastDate !== t) { S.streak = S.lastDate === y ? S.streak+1 : 1; S.lastDate = t; S.dayCount = 0; }
+  S.dayCount++;
+  S.history.unshift({nama:r.nama,kategori:r.kategori,daur:!!r.daur_ulang,poin:p,tgl:new Date().toLocaleDateString("id-ID",{day:"numeric",month:"short"})});
   S.history = S.history.slice(0,30);
   const fresh = ACH.filter(a => !S.achievements.includes(a.id) && a.t(S));
   fresh.forEach(a => S.achievements.push(a.id));
